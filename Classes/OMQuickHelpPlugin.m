@@ -23,6 +23,7 @@ typedef NS_ENUM(NSInteger, OMQuickHelpPluginIntegrationStyle) {
 
 @interface NSObject (OMSwizzledMethods)
 
+- (void)om_showFullDocs:(id)sender;
 - (void)om_showQuickHelp:(id)sender;
 - (void)om_handleLinkClickWithActionInformation:(id)info;
 - (void)om_dashNotInstalledFallback;
@@ -34,6 +35,21 @@ typedef NS_ENUM(NSInteger, OMQuickHelpPluginIntegrationStyle) {
 @end
 
 @implementation NSObject (OMSwizzledMethods)
+
+- (void)om_showFullDocs:(id)sender {
+	NSString *symbolString = [self valueForKeyPath:@"selectedExpression.symbolString"];
+	if(symbolString.length)
+	{
+		BOOL dashOpened = [self om_showQuickHelpForSearchString:symbolString];
+		if (!dashOpened) {
+			[self om_dashNotInstalledFallback];
+		}
+	}
+	else
+	{
+		NSBeep();
+	}
+}
 
 - (void)om_showQuickHelp:(id)sender
 {
@@ -269,6 +285,7 @@ typedef NS_ENUM(NSInteger, OMQuickHelpPluginIntegrationStyle) {
 	static dispatch_once_t onceToken;
 	dispatch_once(&onceToken, ^{
 		if (NSClassFromString(@"IDESourceCodeEditor") != NULL) {
+			[NSClassFromString(@"IDESourceCodeEditor") jr_swizzleMethod:@selector(_showDocumentationForSelectedSymbol:) withMethod:@selector(om_showFullDocs:) error:NULL];
 			[NSClassFromString(@"IDESourceCodeEditor") jr_swizzleMethod:@selector(showQuickHelp:) withMethod:@selector(om_showQuickHelp:) error:NULL];
 		}
 
